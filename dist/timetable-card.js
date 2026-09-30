@@ -91,8 +91,8 @@ const TC_DEFAULT = {
   refresh_interval: 'auto',
   title: '',
   weekdays: [...TC_DAY_TOKENS],
-  dynamic_start: 'today',
-  dynamic_count: 1,
+  dynamic_start: null, // null = not set → Fixed weekdays mode; any value (incl. 'today'/1) → Dynamic mode
+  dynamic_count: null,
   first_day_only: false,
   last_day_only: false,
   show_description_indicator: false,
@@ -599,7 +599,7 @@ class TimetableCardEditor extends HTMLElement {
   // ── Weekdays (Fixed / Dynamic) ──────────────────────────────────
   _wdMode() {
     const c = this._config;
-    const hasDynamic = c.dynamic_start !== TC_DEFAULT.dynamic_start || c.dynamic_count !== TC_DEFAULT.dynamic_count;
+    const hasDynamic = c.dynamic_start != null || c.dynamic_count != null;
     return this._wdModeForce || (hasDynamic ? 'dynamic' : 'fixed');
   }
 
@@ -641,6 +641,17 @@ class TimetableCardEditor extends HTMLElement {
       b.addEventListener('click', () => {
         if (this._wdMode() === b.dataset.wdmode) return;
         this._wdModeForce = b.dataset.wdmode;
+        if (b.dataset.wdmode === 'dynamic') {
+          // Persist the mode right away so the card switches too — today/1 must be written explicitly
+          this._dispatch({
+            ...this._config,
+            dynamic_start: this._config.dynamic_start ?? 'today',
+            dynamic_count: this._config.dynamic_count ?? 1,
+            weekdays: [...TC_DEFAULT.weekdays],
+          });
+        } else {
+          this._dispatch({ ...this._config, dynamic_start: null, dynamic_count: null });
+        }
         this._renderWeekdaysBlock();
       });
     });
@@ -985,7 +996,7 @@ class TimetableCard extends HTMLElement {
 
   _wdMode() {
     const c = this._config;
-    return (c.dynamic_start !== TC_DEFAULT.dynamic_start || c.dynamic_count !== TC_DEFAULT.dynamic_count) ? 'dynamic' : 'fixed';
+    return (c.dynamic_start != null || c.dynamic_count != null) ? 'dynamic' : 'fixed';
   }
 
   _computeHomeOffset() {
